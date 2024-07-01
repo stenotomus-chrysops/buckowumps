@@ -5,7 +5,12 @@ use macroquad::{
     ui::{hash, root_ui, widgets, Skin},
 };
 use std::collections::VecDeque;
+use titlebuckos::TitleBuckos;
+// use introtext::IntroText;
 // use miniquad::window::schedule_update;
+
+mod introtext;
+mod titlebuckos;
 
 fn config() -> Conf {
     miniquad::conf::Conf {
@@ -330,7 +335,7 @@ impl Buckos {
         for _new_bucko in 0..amount {
             let mut position: Option<U16Vec2> = None;
             // Prevent more than one bucko in a cell. AKA The Anti Bucko-Love Loop
-            while positions.iter().any(|p| Some(*p) == position) || position.is_none() {
+            while position.map_or(true, |pos| positions.contains(&pos)) {
                 // The linear algebra library has no u8 vectors
                 // and macroquad rng has no u16 range generator
                 // so you get this cast mess. I'm just happy to
@@ -376,76 +381,6 @@ struct Turn {
 }
 
 // Skill issued so hard by lifetimes
-// struct IntroText<'a> {
-//     text:  Vec<String>,
-//     chars: std::str::Chars<'a>,
-//     raw:   String,
-//     timer: u8,
-//     font:  Option<&'a Font>,
-// }
-//
-// impl<'a> IntroText<'a> {
-//     const FRAMES_PER_CHAR: u8 = 4;
-//
-//     fn empty() -> IntroText<'a> {
-//         IntroText {
-//             text:  Vec::<String>::new(),
-//             chars: "".chars(),
-//             raw:   String::new(),
-//             timer: 0,
-//             font:  None,
-//         }
-//     }
-//
-//     fn init(&'a mut self, font: Option<&'a Font>, bucko_amount: u8, grid_size: u16) {
-//         self.raw = format!(
-//             "Creative Computing Buckopia, New Jrsey\n\
-//             The object of this game is to find the {} bucko{} hidden on a {} by {} \
-//             grid. \nYou get 10 tries. After each try, I will \nkill \nyou.",
-//             bucko_amount,
-//             if bucko_amount > 1 { "s" } else { "" },
-//             grid_size,
-//             grid_size,
-//         );
-//         self.chars = self.raw.chars();
-//         self.font = font;
-//     }
-//
-//     fn update(&mut self) {
-//         self.timer += 1;
-//         if self.timer == IntroText::FRAMES_PER_CHAR {
-//             self.timer = 0;
-//             return;
-//         }
-//
-//         if let Some(char) = self.chars.next() {
-//             let terminal_width = screen_width() - 4.0 * MARGIN;
-//             let word = self
-//                 .chars
-//                 .clone()
-//                 .take_while(|c| c.is_alphanumeric())
-//                 .collect::<String>();
-//             let last_line = self.text.last_mut().unwrap();
-//             let word_dims = measure_text(&word, self.font, FONT_SIZE, 1.0);
-//             let line_dims = measure_text(last_line, self.font, FONT_SIZE, 1.0);
-//             if line_dims.width + word_dims.width < terminal_width && char != '\n' {
-//                 last_line.push(char);
-//             } else if char.is_whitespace() {
-//                 self.text.push(String::new())
-//             } else {
-//                 self.text.push(char.to_string());
-//             }
-//         }
-//     }
-//
-//     fn draw(&'a self, text_params: TextParams) {
-//         let text_height = measure_text("dp", self.font, FONT_SIZE, 1.0).height;
-//         for (i, line) in self.text.iter().enumerate() {
-//             let spacing = (i + 1) as f32 * (text_height + MARGIN) + BAR_SIZE + screen_width();
-//             draw_text_ex(line, 2.0 * MARGIN, spacing, text_params.clone())
-//         }
-//     }
-// }
 
 const BACK_COLOR: Color = color_u8!(45, 44, 154, 255);
 const FORE_COLOR: Color = color_u8!(112, 110, 228, 255);
@@ -589,12 +524,15 @@ async fn main() -> Result<(), macroquad::Error> {
     let mut buckos = Buckos::default();
     let mut log = Vec::<Turn>::with_capacity(TURNS as usize);
 
+    let mut titlebuckos = TitleBuckos::default();
+    titlebuckos.init(bucko_amount, screen_width() - 2.0 * MARGIN);
+
     let mut intro_text = Vec::<String>::new();
     let mut intro_chars = "".chars();
     let mut intro_raw: String;
     let mut frame: u8 = 0;
 
-    // let mut introtext = IntroText::empty();
+    // let mut introtext = IntroText::default();
     // let mut test = Vec2::ZERO;
 
     loop {
@@ -741,6 +679,7 @@ async fn main() -> Result<(), macroquad::Error> {
                     .ui(&mut root_ui())
                 {
                     bucko_amount -= 1;
+                    titlebuckos.remove();
                     // schedule_update();
                 }
 
@@ -753,6 +692,7 @@ async fn main() -> Result<(), macroquad::Error> {
                     .ui(&mut root_ui())
                 {
                     bucko_amount += 1;
+                    titlebuckos.add();
                     // schedule_update();
                 }
 
@@ -764,7 +704,8 @@ async fn main() -> Result<(), macroquad::Error> {
                 {
                     buckos = Buckos::new(bucko_amount, grid_size);
 
-                    // introtext.init(Some(&font), bucko_amount, grid_size);
+                    // introtext.init(bucko_amount, grid_size);
+
                     intro_text.clear();
                     intro_text.push("Creative Computing Buckopia, New Jrsey".to_string());
                     intro_text.push(String::new());
@@ -788,6 +729,21 @@ async fn main() -> Result<(), macroquad::Error> {
                 }
 
                 root_ui().pop_skin();
+
+                titlebuckos.update(0.16);
+                for bucko in titlebuckos.positions() {
+                    draw_texture_ex(
+                        &bucko_texture,
+                        bucko.x - 32.0 + MARGIN,
+                        bucko.y - 32.0 + MARGIN + BAR_SIZE,
+                        WHITE,
+                        DrawTextureParams {
+                            dest_size: Some(Vec2::splat(64.0)),
+                            source: Some(bucko_sprite.frame().source_rect),
+                            ..Default::default()
+                        },
+                    )
+                }
             }
 
             GameState::Playing => {
@@ -872,6 +828,17 @@ async fn main() -> Result<(), macroquad::Error> {
                         let spacing = (i + 1) as f32 * (text_height + MARGIN) + terminal_position;
                         draw_text_ex(line, 2.0 * MARGIN, spacing, text_params.clone())
                     }
+
+                    // let current_width = 0;
+                    // let terminal_width = screen_width() - 4.0 * MARGIN;
+                    // let it = introtext.get().lines().flat_map(|line| {
+                    //     let split_at = line.split_inclusive(' ').enumerate().scan(0.0, |length, (i, word)|{
+                    //         length += measure_text(word, Some(&font), FONT_SIZE, 1.0);
+                    //         match length > terminal_width {
+                    //             true => None
+                    //         }
+                    //     })
+                    // });
                 }
 
                 let win = buckos.captured.iter().all(|&b| b);
