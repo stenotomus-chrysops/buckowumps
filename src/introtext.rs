@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use macroquad::prelude::*;
 
 // use super::{BAR_SIZE, FONT_SIZE, MARGIN};
@@ -113,7 +114,7 @@ impl IntroText {
         &self.raw[..self.print_to]
     }
 
-    pub fn print(terminal_width: f32) -> Vec<String> {
+    pub fn print(_terminal_width: f32) -> Vec<String> {
         todo!()
     }
 }

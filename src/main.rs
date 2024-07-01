@@ -380,7 +380,7 @@ struct Turn {
     distances:   Vec<Option<String>>,
 }
 
-// Skill issued so hard by lifetimes
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const BACK_COLOR: Color = color_u8!(45, 44, 154, 255);
 const FORE_COLOR: Color = color_u8!(112, 110, 228, 255);
@@ -554,10 +554,22 @@ async fn main() -> Result<(), macroquad::Error> {
             // &ami.sprite.current_animation().to_string(),
             // &ami.position.to_string(),
             2.0 * MARGIN,
-            BAR_SIZE / 2.0 + 6.0,
+            BAR_SIZE / 2.0,
             TextParams {
                 font: Some(&font),
                 font_size: 12,
+                color: FORE_COLOR,
+                ..Default::default()
+            },
+        );
+
+        draw_text_ex(
+            VERSION,
+            2.0 * MARGIN,
+            BAR_SIZE / 2.0 + 16.0,
+            TextParams {
+                font: Some(&font),
+                font_size: 8,
                 color: FORE_COLOR,
                 ..Default::default()
             },
