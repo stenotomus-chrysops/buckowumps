@@ -6,7 +6,7 @@ use macroquad::{
 };
 use std::collections::VecDeque;
 use titlebuckos::TitleBuckos;
-// use introtext::IntroText;
+use introtext::IntroText;
 // use miniquad::window::schedule_update;
 
 mod introtext;
@@ -527,13 +527,7 @@ async fn main() -> Result<(), macroquad::Error> {
     let mut titlebuckos = TitleBuckos::default();
     titlebuckos.init(bucko_amount, screen_width() - 2.0 * MARGIN);
 
-    let mut intro_text = Vec::<String>::new();
-    let mut intro_chars = "".chars();
-    let mut intro_raw: String;
-    let mut frame: u8 = 0;
-
-    // let mut introtext = IntroText::default();
-    // let mut test = Vec2::ZERO;
+    let mut introtext = IntroText::default();
 
     loop {
         assert!(ami.cute);
@@ -550,9 +544,6 @@ async fn main() -> Result<(), macroquad::Error> {
 
         draw_text_ex(
             "BuckoWumps",
-            // &format!("{:.2},{:.2}", ami.position.x, ami.position.y),
-            // &ami.sprite.current_animation().to_string(),
-            // &ami.position.to_string(),
             2.0 * MARGIN,
             BAR_SIZE / 2.0,
             TextParams {
@@ -716,18 +707,7 @@ async fn main() -> Result<(), macroquad::Error> {
                 {
                     buckos = Buckos::new(bucko_amount, grid_size);
 
-                    // introtext.init(bucko_amount, grid_size);
-
-                    intro_text.clear();
-                    intro_text.push("Creative Computing Buckopia, New Jrsey".to_string());
-                    intro_text.push(String::new());
-                    intro_raw =
-                        format!(
-                        "The object of this game is to find the {} bucko{} hidden on a {} by {} \
-                            grid. \nYou get 10 tries. After each try, I will \nkill \nyou.",
-                        bucko_amount, if bucko_amount > 1 {"s"} else {""}, grid_size, grid_size,
-                    );
-                    intro_chars = intro_raw.chars();
+                    introtext.init(bucko_amount, grid_size);
 
                     play_sound(
                         &sfx_light,
@@ -742,7 +722,7 @@ async fn main() -> Result<(), macroquad::Error> {
 
                 root_ui().pop_skin();
 
-                titlebuckos.update(0.16);
+                titlebuckos.update(0.016);
                 for bucko in titlebuckos.positions() {
                     draw_texture_ex(
                         &bucko_texture,
@@ -815,42 +795,12 @@ async fn main() -> Result<(), macroquad::Error> {
                 }
 
                 if log.is_empty() {
-                    if frame % 4 == 0 {
-                        if let Some(char) = intro_chars.next() {
-                            let terminal_width = screen_width() - 4.0 * MARGIN;
-                            let word = intro_chars
-                                .clone()
-                                .take_while(|c| c.is_alphanumeric())
-                                .collect::<String>();
-                            let last_line = intro_text.last_mut().unwrap();
-                            let word_dims = measure_text(&word, Some(&font), FONT_SIZE, 1.0);
-                            let line_dims = measure_text(last_line, Some(&font), FONT_SIZE, 1.0);
-                            if line_dims.width + word_dims.width < terminal_width && char != '\n' {
-                                last_line.push(char);
-                            } else if char.is_whitespace() {
-                                intro_text.push(String::new())
-                            } else {
-                                intro_text.push(char.to_string());
-                            }
-                        }
-                    }
-
                     let text_height = measure_text("dp", Some(&font), FONT_SIZE, 1.0).height;
-                    for (i, line) in intro_text.iter().enumerate() {
+                    let terminal_width = screen_width() - 4.0 * MARGIN;
+                    for (i, line) in introtext.get(Some(&font), terminal_width).iter().enumerate() {
                         let spacing = (i + 1) as f32 * (text_height + MARGIN) + terminal_position;
                         draw_text_ex(line, 2.0 * MARGIN, spacing, text_params.clone())
                     }
-
-                    // let current_width = 0;
-                    // let terminal_width = screen_width() - 4.0 * MARGIN;
-                    // let it = introtext.get().lines().flat_map(|line| {
-                    //     let split_at = line.split_inclusive(' ').enumerate().scan(0.0, |length, (i, word)|{
-                    //         length += measure_text(word, Some(&font), FONT_SIZE, 1.0);
-                    //         match length > terminal_width {
-                    //             true => None
-                    //         }
-                    //     })
-                    // });
                 }
 
                 let win = buckos.captured.iter().all(|&b| b);
@@ -967,15 +917,6 @@ async fn main() -> Result<(), macroquad::Error> {
 
                     format!("You got them all in {} turns!", log.len())
                 } else {
-                    // Jebus it plays every frame
-                    // play_sound(
-                    //     &sfx_gameover,
-                    //     PlaySoundParams {
-                    //         looped: false,
-                    //         volume: sfx_volume * 0.5,
-                    //     },
-                    // );
-
                     for (i, _b) in buckos.captured.iter().enumerate().filter(|(_i, &b)| !b) {
                         let position = buckos.positions[i].as_vec2() * cell_size;
                         draw_texture_ex(
@@ -990,6 +931,7 @@ async fn main() -> Result<(), macroquad::Error> {
                             },
                         )
                     }
+                    
                     format!("Sorry, that's {TURNS} tries.")
                 };
 
@@ -1060,19 +1002,6 @@ async fn main() -> Result<(), macroquad::Error> {
         if ami.visible {
             ami.update(&sfx_climb, sfx_volume);
             ami.draw();
-        }
-
-        // {
-        //     let Vec2 { x, y } = test + vec2(screen_width() / 2.0, BAR_SIZE + MARGIN);
-        //     draw_circle(x, y, 1.0, RED);
-        // }
-        // for (point, _) in ami.jump_path.iter() {
-        //     draw_circle(point.x, point.y, 2.0, YELLOW);
-        // }
-
-        frame += 1;
-        if frame == 60 {
-            frame = 0;
         }
 
         next_frame().await;

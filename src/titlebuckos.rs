@@ -12,8 +12,8 @@ pub struct TitleBuckos {
 }
 
 impl TitleBuckos {
-    const BUCKO_RADIUS: f32 = 32.0;
-    const VELOCITY: f32 = 16.0;
+    const BUCKO_RADIUS: f32 = 16.0;
+    const VELOCITY: f32 = 64.0;
     const LIMIT: u8 = 8;
 
     pub fn init(&mut self, amount: u8, boundary: f32) {
@@ -52,17 +52,14 @@ impl TitleBuckos {
     }
 
     pub fn update(&mut self, dt: f32) {
-        self.positions
-            .iter_mut()
-            .zip(self.directions.iter_mut())
-            .for_each(|(pos, dir)| {
-                if pos.x < Self::BUCKO_RADIUS || pos.x > self.boundary - Self::BUCKO_RADIUS {
-                    *dir *= vec2(-1.0, 1.0);
-                }
-                if pos.y < Self::BUCKO_RADIUS || pos.y > self.boundary - Self::BUCKO_RADIUS {
-                    *dir *= vec2(1.0, -1.0);
-                }
-                *pos += *dir * Self::VELOCITY * dt;
-            })
+        for (pos, dir) in self.positions.iter_mut().zip(self.directions.iter_mut()) {
+            if pos.x < Self::BUCKO_RADIUS || pos.x > self.boundary - Self::BUCKO_RADIUS {
+                dir.x *= -1.0;
+            }
+            if pos.y < Self::BUCKO_RADIUS || pos.y > self.boundary - Self::BUCKO_RADIUS {
+                dir.y *= -1.0;
+            }
+            *pos += *dir * Self::VELOCITY * dt;
+        }
     }
 }
