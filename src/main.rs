@@ -722,7 +722,7 @@ async fn main() -> Result<(), macroquad::Error> {
 
                 root_ui().pop_skin();
 
-                titlebuckos.update(0.016);
+                titlebuckos.update(get_frame_time());
                 for bucko in titlebuckos.positions() {
                     draw_texture_ex(
                         &bucko_texture,
@@ -931,7 +931,7 @@ async fn main() -> Result<(), macroquad::Error> {
                             },
                         )
                     }
-                    
+
                     format!("Sorry, that's {TURNS} tries.")
                 };
 
