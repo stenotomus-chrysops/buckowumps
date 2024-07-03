@@ -947,6 +947,7 @@ async fn main() -> Result<(), macroquad::Error> {
                     || is_key_pressed(KeyCode::Enter)
                     || is_key_pressed(KeyCode::KpEnter)
                 {
+                    introtext.reset();
                     log.clear();
                     ami.visible = false;
                     state = GameState::MainMenu

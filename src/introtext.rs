@@ -31,12 +31,12 @@ impl IntroText {
         // }
     }
 
-    pub fn get(&mut self, font: Option<&Font>, terminal_width: f32) -> &Vec<String> {
+    pub fn get(&mut self, font: Option<&Font>, terminal_width: f32) -> Vec<&str> {
         if self.timer != Self::FRAMES_PER_CHAR {
             if self.print_to < self.raw.len() {
                 self.timer += 1;
             }
-            return &self.cache;
+            return self.cache.iter().map(|s| s.as_str()).collect();
         }
         self.print_to += 1;
         self.timer = 0;
@@ -64,7 +64,12 @@ impl IntroText {
             }
         }
         self.cache = output;
-        &self.cache
+        self.cache.iter().map(|s| s.as_str()).collect()
+    }
+
+    pub fn reset(&mut self) {
+        self.print_to = 0;
+        self.cache = Default::default();
     }
 }
 
