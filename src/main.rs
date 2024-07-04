@@ -1,3 +1,4 @@
+use introtext::IntroText;
 use macroquad::{
     audio::{load_sound, play_sound, set_sound_volume, PlaySoundParams, Sound},
     experimental::animation::{AnimatedSprite, Animation},
@@ -6,7 +7,6 @@ use macroquad::{
 };
 use std::collections::VecDeque;
 use titlebuckos::TitleBuckos;
-use introtext::IntroText;
 // use miniquad::window::schedule_update;
 
 mod introtext;
@@ -438,8 +438,6 @@ async fn main() -> Result<(), macroquad::Error> {
         }
     };
     let settings_skin = {
-        // let back = Image::gen_image_color(212, 312, FORE_COLOR);
-        // back.overlay(other)
         let label_style = root_ui()
             .style_builder()
             .font(include_bytes!("../assets/C64_Pro_Mono-STYLE.ttf"))?
@@ -455,19 +453,6 @@ async fn main() -> Result<(), macroquad::Error> {
             .build();
         let window_style = root_ui()
             .style_builder()
-            // .background(Image::gen_image_color(212, 312, FORE_COLOR))
-            // .background_margin(RectOffset {
-            //     left:   100.0,
-            //     right:  100.0,
-            //     bottom: 0.0,
-            //     top:    0.0,
-            // })
-            // .margin(RectOffset {
-            //     left:   MARGIN,
-            //     right:  MARGIN,
-            //     bottom: 0.0,
-            //     top:    0.0,
-            // })
             .color(BACK_COLOR)
             .font(include_bytes!("../assets/C64_Pro_Mono-STYLE.ttf"))?
             .text_color(FORE_COLOR)
@@ -477,6 +462,7 @@ async fn main() -> Result<(), macroquad::Error> {
             label_style,
             button_style,
             window_style,
+            margin: MARGIN,
             ..root_ui().default_skin()
         }
     };
@@ -499,6 +485,7 @@ async fn main() -> Result<(), macroquad::Error> {
     );
 
     let mut ami = Ami::init().await?;
+    let win_texture = load_texture("win.png").await?;
 
     let bucko_texture = load_texture("bucko.png").await?;
     let mut bucko_sprite = AnimatedSprite::new(
@@ -797,7 +784,11 @@ async fn main() -> Result<(), macroquad::Error> {
                 if log.is_empty() {
                     let text_height = measure_text("dp", Some(&font), FONT_SIZE, 1.0).height;
                     let terminal_width = screen_width() - 4.0 * MARGIN;
-                    for (i, line) in introtext.get(Some(&font), terminal_width).iter().enumerate() {
+                    for (i, line) in introtext
+                        .get(Some(&font), terminal_width)
+                        .iter()
+                        .enumerate()
+                    {
                         let spacing = (i + 1) as f32 * (text_height + MARGIN) + terminal_position;
                         draw_text_ex(line, 2.0 * MARGIN, spacing, text_params.clone())
                     }
@@ -904,13 +895,12 @@ async fn main() -> Result<(), macroquad::Error> {
                     ami.visible = false;
 
                     draw_texture_ex(
-                        &ami.texture,
+                        &win_texture,
                         2.0 * MARGIN,
                         BAR_SIZE + MARGIN,
                         WHITE,
                         DrawTextureParams {
                             dest_size: Some(Vec2::splat(screen_width() - 2.0 * MARGIN)),
-                            source: Some(Rect::new(0.0, 512.0, 128.0, 128.0)),
                             ..Default::default()
                         },
                     );
@@ -968,26 +958,31 @@ async fn main() -> Result<(), macroquad::Error> {
 
             if settings_on {
                 let screen_size = vec2(screen_width(), screen_height());
-                let window_size = vec2(180.0, 150.0);
-                let button_size = vec2(160.0, 20.0);
-                widgets::Window::new(hash!(), (screen_size - window_size) / 2.0, window_size)
+                let window_size = vec2(280.0, 90.0);
+                let button_size = vec2(260.0, 20.0);
+                let window_pos = (screen_size - window_size) / 2.0;
+                root_ui().canvas().rect(
+                    Rect::new(
+                        window_pos.x - MARGIN,
+                        window_pos.y - MARGIN,
+                        window_size.x + 2.0 * MARGIN,
+                        window_size.y + 2.0 * MARGIN,
+                    ),
+                    FORE_COLOR,
+                    FORE_COLOR,
+                );
+                widgets::Window::new(hash!(), window_pos, window_size)
                     .movable(false)
                     .titlebar(false)
                     .ui(&mut root_ui(), |ui| {
-                        // the sliders are tiny WHY
-                        ui.label(None, "BGM Volume");
-                        widgets::Slider::new(hash!(), 0f32..100f32).ui(ui, &mut bgm_volume);
-                        ui.label(None, "SFX Volume");
-                        widgets::Slider::new(hash!(), 0f32..100f32).ui(ui, &mut sfx_volume);
-                        if widgets::Button::new("Apply")
-                            .position(vec2(10.0, 100.0))
-                            .size(button_size)
-                            .ui(ui)
-                        {
+                        let old = bgm_volume;
+                        ui.slider(hash!("bgm"), " BGM Vol", 0f32..100f32, &mut bgm_volume);
+                        ui.slider(hash!(), " SFX Vol", 0f32..100f32, &mut sfx_volume);
+                        if old != bgm_volume {
                             set_sound_volume(&bgm, bgm_volume / 100.0);
                         }
                         if widgets::Button::new("Close")
-                            .position(vec2(10.0, 120.0))
+                            .position(vec2(10.0, 60.0))
                             .size(button_size)
                             .ui(ui)
                         {
